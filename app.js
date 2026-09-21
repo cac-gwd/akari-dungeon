@@ -1,5 +1,5 @@
 import{SIZE,ITEMS,createGame,move,useItem,dropItem,descend,visible,validSave}from './engine.js';
-const VERSION='1.1.3';
+const VERSION='1.1.4';
 const $=id=>document.getElementById(id),KEY='akari-save-v1',RECORD='akari-record-v1';let state,overview=false,record={runs:0,best:1,wins:0},saveOK=true,notified=false,first=false,corrupt=false;
 try{const raw=localStorage.getItem(KEY);if(raw){const parsed=JSON.parse(raw);if(!validSave(parsed))throw Error('invalid');state=parsed}else first=true;const r=JSON.parse(localStorage.getItem(RECORD));if(r&&['runs','best','wins'].every(k=>Number.isFinite(r[k])))record=r}catch{corrupt=true}
 state??=createGame();
