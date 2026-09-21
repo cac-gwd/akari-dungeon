@@ -15,6 +15,16 @@ export function canStep(s,x,y,dx,dy){return floorAt(s,x+dx,y+dy)&&(!(dx&&dy)||(f
 function sight(s,x,y){let x0=s.p.x,y0=s.p.y,dx=Math.abs(x-x0),dy=Math.abs(y-y0),sx=x0<x?1:-1,sy=y0<y?1:-1,err=dx-dy;while(x0!==x||y0!==y){const e=2*err;if(e>-dy){err-=dy;x0+=sx}if(e<dx){err+=dx;y0+=sy}if(x0===x&&y0===y)return true;if(!floorAt(s,x0,y0))return false}return true}
 export function visible(s){const result=new Set;for(let y=Math.max(0,s.p.y-6);y<=Math.min(SIZE-1,s.p.y+6);y++)for(let x=Math.max(0,s.p.x-6);x<=Math.min(SIZE-1,s.p.x+6);x++)if(Math.hypot(x-s.p.x,y-s.p.y)<=6.5&&sight(s,x,y))result.add(key(x,y));return result}
 export function reveal(s){for(const k of visible(s))s.seen[k]=true}
+export function dropItem(s,index){
+if(s.status!=='playing'||!Number.isInteger(index)||index<0||index>=s.bag.length)return false;
+const type=s.bag[index],ground=s.items.find(i=>i.x===s.p.x&&i.y===s.p.y);
+if(ground){
+if(!ITEMS[ground.type]){note(s,'足元に道具を置けない。');return false}
+const taken=ground.type;s.bag[index]=taken;ground.type=type;
+note(s,`${ITEMS[type].name}を置き、${ITEMS[taken].name}を拾った。`);
+}else{s.bag.splice(index,1);s.items.push({x:s.p.x,y:s.p.y,type});note(s,`${ITEMS[type].name}を足元に置いた。`)}
+endTurn(s);return true;
+}
 function kill(s,e){s.enemies=s.enemies.filter(v=>v!==e);s.p.xp+=e.xp;s.kills++;note(s,`${e.type}を倒した。経験値 +${e.xp}`);while(s.p.xp>=s.p.level*12){s.p.xp-=s.p.level*12;s.p.level++;s.p.maxHp+=5;s.p.hp=Math.min(s.p.maxHp,s.p.hp+12);note(s,`レベル${s.p.level}に上がった！ 生命が回復。`)}}
 function pickup(s){const item=s.items.find(i=>i.x===s.p.x&&i.y===s.p.y);if(!item)return;if(item.type==='gold'){s.gold+=10+s.floor*5;note(s,'古い銭を拾った。')}else if(item.type==='weapon'||item.type==='armor'){s.p[item.type]++;note(s,item.type==='weapon'?'刀を研いだ。攻撃力 +1。':'護符を重ねた。防御力 +1。')}else{if(s.bag.length>=12){note(s,'道具袋がいっぱいだ。道具は足元に残った。');return}s.bag.push(item.type);note(s,`${ITEMS[item.type].name}を拾った。`)}s.items=s.items.filter(i=>i!==item)}
 function endTurn(s){s.turn++;if(s.turn%4===0)s.p.food=Math.max(0,s.p.food-1);if(s.p.food===0){s.p.hp--;note(s,'空腹で生命が減っていく…')}else if(s.turn%6===0)s.p.hp=Math.min(s.p.maxHp,s.p.hp+1);if(s.p.hp<=0){finish(s);return}for(const e of [...s.enemies]){if(distance(s.p,e)<=1&&canStep(s,e.x,e.y,s.p.x-e.x,s.p.y-e.y)){const damage=Math.max(1,e.attack-s.p.armor+rand(3));s.p.hp-=damage;note(s,`${e.type}の攻撃。${damage}ダメージ。`);if(s.p.hp<=0)break}else{let directions;if(distance(s.p,e)<8){directions=[];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(dx||dy)directions.push([dx,dy]);directions.sort((a,b)=>distance({x:e.x+a[0],y:e.y+a[1]},s.p)-distance({x:e.x+b[0],y:e.y+b[1]},s.p));}else directions=[[rand(3)-1,rand(3)-1]];for(const [dx,dy]of directions){const x=e.x+dx,y=e.y+dy;if(canStep(s,e.x,e.y,dx,dy)&&!(s.p.x===x&&s.p.y===y)&&!s.enemies.some(v=>v!==e&&v.x===x&&v.y===y)){e.x=x;e.y=y;break}}}}
