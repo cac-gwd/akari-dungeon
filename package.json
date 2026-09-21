@@ -1,1 +1,10 @@
-{"name":"akari-dungeon","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","start":"node server.js"}}
+{
+  "name": "akari-dungeon",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "node server.js"
+  },
+  "version": "1.1.2"
+}
