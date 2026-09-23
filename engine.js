@@ -1,13 +1,17 @@
-export const SIZE=31;
+import{SIZE,createLayout}from './dungeon.js';
+export{SIZE}from './dungeon.js';
 export const ITEMS={herb:{name:'癒やし草',desc:'生命を24回復する',glyph:'✚',color:'#a2d6b6'},food:{name:'旅のおにぎり',desc:'満腹度を55回復する',glyph:'◆',color:'#e6ddbe'},scroll:{name:'雷の札',desc:'周囲6マスの敵すべてに18ダメージ',glyph:'▱',color:'#c0b2e5'},warp:{name:'風の石',desc:'同じ階の安全な場所へ移る',glyph:'◇',color:'#91cbd8'}};
 const rand=(n)=>Math.floor(Math.random()*n);
 const key=(x,y)=>y*SIZE+x;
 export const distance=(a,b)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
 export function note(s,t){s.logs.unshift(t);s.logs=s.logs.slice(0,30)}
 export function createGame(){const s={version:1,floor:1,turn:0,p:{x:0,y:0,hp:36,maxHp:36,level:1,xp:0,food:100,weapon:0,armor:0},bag:['herb','herb','food','scroll'],logs:[],status:'playing',kills:0,gold:0};generate(s);note(s,'地下10階の「帰り灯」を探そう。');return s}
-export function generate(s){s.map=Array(SIZE*SIZE).fill(0);s.seen=Array(SIZE*SIZE).fill(false);s.enemies=[];s.items=[];s.traps=[];const rooms=[];for(let gy=0;gy<3;gy++)for(let gx=0;gx<3;gx++){const w=5+rand(3),h=5+rand(3),x=2+gx*10+rand(2),y=2+gy*10+rand(2);const room={x:x+Math.floor(w/2),y:y+Math.floor(h/2)};rooms.push(room);for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++)s.map[key(xx,yy)]=1;}
-for(let i=1;i<rooms.length;i++){let a={...rooms[i-1]},b=rooms[i];while(a.x!==b.x){s.map[key(a.x,a.y)]=1;a.x+=Math.sign(b.x-a.x)}while(a.y!==b.y){s.map[key(a.x,a.y)]=1;a.y+=Math.sign(b.y-a.y)}s.map[key(a.x,a.y)]=1;}
-s.p.x=rooms[0].x;s.p.y=rooms[0].y;s.stairs={...rooms[8]};const used=new Set([key(s.p.x,s.p.y),key(s.stairs.x,s.stairs.y)]);const free=()=>{for(let tries=0;tries<3000;tries++){const x=1+rand(SIZE-2),y=1+rand(SIZE-2),k=key(x,y);if(s.map[k]&&!used.has(k)&&distance(s.p,{x,y})>3){used.add(k);return{x,y}}}throw Error('No free tile')};
+export function generate(s){
+const layout=createLayout(s.layout);s.layout=layout.kind;s.map=layout.map;s.seen=Array(SIZE*SIZE).fill(false);s.enemies=[];s.items=[];s.traps=[];
+s.p.x=layout.start.x;s.p.y=layout.start.y;s.stairs=layout.stairs;
+const spots=[];for(let y=1;y<SIZE-1;y++)for(let x=1;x<SIZE-1;x++)if(s.map[key(x,y)]&&distance(s.p,{x,y})>3&&!(x===s.stairs.x&&y===s.stairs.y))spots.push({x,y});
+for(let i=spots.length-1;i>0;i--){const j=rand(i+1);[spots[i],spots[j]]=[spots[j],spots[i]]}
+const free=()=>{if(!spots.length)throw Error('No free tile');return spots.pop()};
 for(let i=0;i<6+s.floor;i++){const type=s.floor>=4&&i%3===0?'鬼火':i%2?'迷い鼠':'苔精';s.enemies.push({...free(),type,hp:8+s.floor*3+(type==='鬼火'?3:0),attack:3+Math.floor(s.floor*.8),xp:4+s.floor*2})}
 for(const type of ['food','food','food','herb','herb','scroll','warp','gold','weapon','armor'])s.items.push({...free(),type});for(let i=0;i<2+s.floor;i++)s.traps.push({...free(),revealed:false});reveal(s);note(s,`地下${s.floor}階へ。遠くに灯が揺れている。`);}
 export function floorAt(s,x,y){return x>=0&&y>=0&&x<SIZE&&y<SIZE&&s.map[key(x,y)]===1}
